@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Carteirinha | Escola Municipal Castro Alves</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    /* RESET */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #1a0e08;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+      color: #fff;
+    }
+
+    /* HEADER */
+    .page-header { text-align: center; margin-bottom: 2.5rem; }
+    .page-header h1 {
+      font-size: 2rem; font-weight: 900;
+      background: linear-gradient(135deg, #f5c87a, #e8763a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.3rem;
+    }
+    .page-header p { color: #a07050; font-size: 0.95rem; }
+
+    /* Botão de logout */
+    .btn-logout {
+      background: rgba(200,75,31,0.2);
+      border: 1px solid rgba(200,75,31,0.4);
+      border-radius: 8px;
+      color: #e8763a; font-family: inherit;
+      font-size: 0.82rem; font-weight: 600;
+      padding: 0.4rem 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-logout:hover { background: rgba(200,75,31,0.35); }
+
+    /* Status do banco de dados */
+    .db-status {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(40,20,5,0.6);
+      border: 1px solid rgba(180,100,40,0.3);
+      border-radius: 20px;
+      padding: 0.3rem 0.9rem;
+      font-size: 0.78rem; color: #a07050;
+      margin-top: 0.5rem;
+    }
+    .db-status .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #888; flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .db-status.loaded .dot { background: #6db87a; }
+    .db-status.loading .dot { background: #f5c87a; animation: pulse 0.8s infinite; }
+    .db-status.error .dot { background: #e05555; }
+    @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+
+    /* LAYOUT */
+    .main-layout {
+      width: 100%; max-width: 1100px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    /* FORMULÁRIO */
+    .form-panel {
+      background: rgba(80, 35, 10, 0.5);
+      border: 1px solid rgba(180, 100, 40, 0.3);
+      border-radius: 16px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 1rem;
+    }
+    .form-panel h2 {
+      font-size: 1.1rem; font-weight: 700; color: #f5c87a;
+      margin-bottom: 1.2rem; padding-bottom: 0.8rem;
+      border-bottom: 1px solid rgba(180,100,40,0.3);
+    }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+      display: block; font-size: 0.82rem; font-weight: 600;
+      color: #c89060; margin-bottom: 0.3rem;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .form-group select,
+    .form-group input {
+      width: 100%;
+      background: rgba(20, 10, 5, 0.7);
+      border: 1px solid rgba(180, 100, 40, 0.4);
+      border-radius: 8px; color: #fff;
+      font-family: inherit; font-size: 0.92rem;
+      padding: 0.6rem 0.8rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .form-group select:focus,
+    .form-group input:focus {
+      border-color: #e8763a;
+      box-shadow: 0 0 0 3px rgba(232, 118, 58, 0.2);
+    }
+    .form-group select option { background: #2a1205; }
+
+    .photo-upload-area {
+      width: 100%; height: 90px;
+      border: 2px dashed rgba(180, 100, 40, 0.5);
+      border-radius: 8px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s; gap: 0.3rem;
+    }
+    .photo-upload-area:hover { border-color: #e8763a; background: rgba(232,118,58,0.05); }
+    .photo-upload-area span { font-size: 0.8rem; color: #a07050; }
+    #photo-input { display: none; }
+
+    .btn-download {
+      width: 100%; padding: 0.85rem;
+      background: linear-gradient(135deg, #c84b1f, #e8763a);
+      border: none; border-radius: 10px; color: white;
+      font-family: inherit; font-size: 1rem; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 0.5rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-top: 1.2rem;
+      box-shadow: 0 4px 15px rgba(200, 75, 31, 0.4);
+    }
+    .btn-download:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(200,75,31,0.6); }
+    .btn-download:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* CARTEIRINHA */
+    .card-panel { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+
+    #carteirinha {
+      width: 680px;
+      background: #ffffff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* Cabeçalho marrom geométrico — LOGO À DIREITA */
+    .card-header {
+      position: relative; height: 100px;
+      background: #5C2308; overflow: hidden;
+      display: flex; align-items: center;
+      justify-content: flex-end; padding-left: 20px;
+    }
+    .card-header::before {
+      content: ''; position: absolute; inset: 0;
+      background:
+        linear-gradient(125deg, #7B3A18 0%, #7B3A18 30%, transparent 30%),
+        linear-gradient(200deg, #9B4E20 0%, #9B4E20 20%, transparent 20%),
+        linear-gradient(80deg,  #3D1608 45%, transparent 45%),
+        linear-gradient(160deg, #6B3015 55%, transparent 55%),
+        linear-gradient(45deg,  #AA5528 70%, transparent 70%),
+        linear-gradient(260deg, #441A06 65%, transparent 65%);
+    }
+    .card-header::after {
+      content: ''; position: absolute; bottom: 0; left: 0;
+      width: 100%; height: 100%;
+      background:
+        linear-gradient(330deg, #8B4020 40%, transparent 40%),
+        linear-gradient(15deg,  #C07030 60%, transparent 60%),
+        linear-gradient(285deg, #4A2010 50%, transparent 50%);
+    }
+    .school-logo-wrap {
+      position: relative; z-index: 2;
+      display: flex; align-items: center; gap: 12px;
+      /* Logo à direita: invertemos a ordem */
+      flex-direction: row-reverse;
+      padding-right: 20px;
+    }
+    .school-logo {
+      width: 64px; height: 64px; border-radius: 50%;
+      border: 3px solid #F5C030;
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; overflow: hidden;
+    }
+    .school-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .school-name { color: #fff; line-height: 1.2; text-align: right; }
+    .school-name .line1 { font-size: 0.78rem; font-weight: 400; opacity: 0.85; }
+    .school-name .line2 { font-size: 1.15rem; font-weight: 900; }
+
+    /* Corpo */
+    .card-body { display: flex; min-height: 260px; background: #f8f4ef; }
+    .card-left {
+      width: 210px; flex-shrink: 0;
+      display: flex; flex-direction: column;
+      align-items: center; padding: 18px 12px 14px; gap: 10px;
+      background: #fff; border-right: 1px solid #e8ddd0;
+    }
+    /* Foto maior: de 120px → 145px */
+    .photo-circle {
+      width: 145px; height: 145px; border-radius: 50%;
+      border: 3px solid #C07030; overflow: hidden;
+      background: linear-gradient(180deg, #87CEEB 0%, #B8D8F0 40%, #A8D45A 65%, #5A8A20 100%);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .photo-circle img { width: 100%; height: 100%; object-fit: cover; }
+    .qr-area { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    #qr-code-card { width: 80px; height: 80px; }
+    #qr-code-card canvas, #qr-code-card img { width: 80px !important; height: 80px !important; }
+    .qr-label {
+      font-size: 0.68rem; font-weight: 700; color: #C84B1F;
+      font-style: italic; text-align: center;
+    }
+    .card-right {
+      flex: 1; padding: 18px 20px 14px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .card-title {
+      font-size: 0.85rem; font-weight: 900; color: #C84B1F;
+      text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.25; margin-bottom: 14px;
+    }
+    .data-grid {
+      display: grid; grid-template-columns: auto 1fr;
+      gap: 6px 12px; align-items: center; flex: 1;
+    }
+    .data-label { font-size: 0.78rem; font-weight: 700; color: #5C2308; white-space: nowrap; }
+    .data-value {
+      font-size: 0.82rem; color: #1a0a00; font-weight: 400;
+      border-bottom: 1px solid #d0bfaf; padding-bottom: 2px; min-height: 18px;
+    }
+
+    /* Rodapé */
+    .card-footer { background: #fff; padding: 12px 20px; border-top: 1px solid #e8ddd0; }
+    .auth-button {
+      width: 100%; padding: 10px 16px; background: #C84B1F;
+      border-radius: 25px; color: #fff; font-size: 0.78rem;
+      font-weight: 700; font-style: italic; text-align: center; line-height: 1.35;
+    }
+    .card-watermark { text-align: right; font-size: 0.6rem; color: #aaa; margin-top: 4px; }
+
+    /* Barra de download */
+    .download-area {
+      display: flex; align-items: center; gap: 1rem; width: 680px;
+    }
+    .download-status { flex: 1; font-size: 0.85rem; color: #a07050; }
+    .download-status.ready { color: #6db87a; }
+    .btn-print {
+      padding: 0.7rem 1.5rem;
+      background: linear-gradient(135deg, #c84b1f, #e8763a);
+      border: none; border-radius: 8px; color: white;
+      font-family: inherit; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(200, 75, 31, 0.4);
+    }
+    .btn-print:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(200,75,31,0.5); }
+
+    @media (max-width: 1080px) {
+      .main-layout { grid-template-columns: 1fr; gap: 1rem; }
+      .form-panel { position: static; margin-bottom: 2rem; }
+      .form-group select, .form-group input { font-size: 16px; }
+      .card-panel { max-width: 100vw; overflow-x: auto; padding-bottom: 1rem; align-items: flex-start; }
+      #carteirinha { width: 680px; min-width: 680px; }
+      .download-area { width: 100%; min-width: auto; }
+      .btn-logout { position: static; margin-top: 0.5rem; }
+    }
+
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      body { display: flex; justify-content: center; align-items: flex-start; background: white; padding-top: 1cm; margin: 0; }
+      .form-panel, .page-header, .download-area { display: none !important; }
+      .main-layout { display: block; margin: 0; padding: 0; }
+      #carteirinha { width: 680px; box-shadow: none; border: 1px dashed #ccc; transform: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>&#127979; Gerador de Carteirinhas</h1>
+  <p>Escola Municipal Castro Alves &#8212; Transporte Escolar</p>
+  <div style="display:flex;align-items:center;justify-content:center;gap:0.8rem;flex-wrap:wrap;margin-top:0.4rem;">
+    <span class="db-status loading" id="db-status">
+      <span class="dot"></span>
+      <span id="db-status-text">Carregando dados da planilha...</span>
+    </span>
+    <button class="btn-logout" onclick="fazerLogout()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+      </svg>
+      Sair
+    </button>
+  </div>
+</header>
+
+<div class="main-layout">
+
+  <!-- FORMULÁRIO -->
+  <aside class="form-panel">
+    <h2>&#128221; Dados do Aluno</h2>
+
+    <div class="form-group">
+      <label>Selecionar Aluno da Lista</label>
+      <select id="sel-aluno">
+        <option value="">&#8212; Selecione ou preencha manualmente &#8212;</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Nome Completo *</label>
+      <input type="text" id="inp-nome" placeholder="Nome do aluno" oninput="atualizar()">
+    </div>
+
+    <div class="form-group">
+      <label>Matr&iacute;cula</label>
+      <input type="text" id="inp-matricula" placeholder="Ex: 2024001" oninput="atualizar()">
+    </div>
+
+    <div class="form-group">
+      <label>Data de Nascimento</label>
+      <input type="text" id="inp-dn" placeholder="DD/MM/AAAA" oninput="atualizar()">
+    </div>
+
+    <div class="form-group">
+      <label>Endere&ccedil;o</label>
+      <input type="text" id="inp-endereco" placeholder="Rua, Quadra, Setor..." oninput="atualizar()">
+    </div>
+
+    <div class="form-group">
+      <label>Linha do &Ocirc;nibus *</label>
+      <input type="text" id="inp-linha" placeholder="Ex: Linha 44" oninput="atualizar()">
+    </div>
+
+    <div class="form-group">
+      <label>Telefone do Respons&aacute;vel (WhatsApp)</label>
+      <input type="text" id="inp-tel" placeholder="Ex: 61999999999" oninput="atualizarQR()">
+    </div>
+
+    <div class="form-group">
+      <label>Foto do Aluno</label>
+      <div class="photo-upload-area" onclick="document.getElementById('photo-input').click()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c89060" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span>Clique para selecionar a foto</span>
+      </div>
+      <input type="file" id="photo-input" accept="image/*" onchange="carregarFoto(this)">
+    </div>
+
+    <button class="btn-download" onclick="baixarCarteirinha()" id="btn-baixar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Imprimir / Salvar PDF
+    </button>
+  </aside>
+
+  <!-- CARTEIRINHA -->
+  <div class="card-panel">
+    <div id="carteirinha">
+
+      <!-- CABEÇALHO — LOGO À DIREITA -->
+      <div class="card-header">
+        <div class="school-logo-wrap">
+          <div class="school-logo">
+            <img id="logo-escola" src="logo_escola.png" alt="Logo Castro Alves">
+          </div>
+          <div class="school-name">
+            <div class="line1">Escola Municipal</div>
+            <div class="line2">Castro Alves</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CORPO -->
+      <div class="card-body">
+        <div class="card-left">
+          <div class="photo-circle" id="photo-preview-wrap">
+            <img id="photo-preview" src="" alt="" style="display:none;">
+          </div>
+          <div class="qr-area">
+            <div id="qr-code-card"></div>
+            <div class="qr-label">Contato do respons&aacute;vel</div>
+          </div>
+        </div>
+        <div class="card-right">
+          <div class="card-title">IDENTIFICA&Ccedil;&Atilde;O DA CRIAN&Ccedil;A<br>E/OU ESTUDANTE</div>
+          <div class="data-grid">
+            <div class="data-label">Nome</div>
+            <div class="data-value" id="card-nome"></div>
+            <div class="data-label">Matr&iacute;cula</div>
+            <div class="data-value" id="card-matricula"></div>
+            <div class="data-label">D.N</div>
+            <div class="data-value" id="card-dn"></div>
+            <div class="data-label">Endere&ccedil;o</div>
+            <div class="data-value" id="card-endereco"></div>
+            <div class="data-label">Linha</div>
+            <div class="data-value" id="card-linha"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RODAPÉ -->
+      <div class="card-footer">
+        <div class="auth-button">Autoriza&ccedil;&atilde;o para as crian&ccedil;as e/ou estudantes que utilizam transporte escolar</div>
+        <div class="card-watermark">Uso exclusivo para crian&ccedil;as e/ou estudantes - Transporte Escolar</div>
+      </div>
+    </div>
+
+    <!-- ÁREA DE DOWNLOAD -->
+    <div class="download-area">
+      <div class="download-status" id="download-status">Preencha o nome e a linha para habilitar o download.</div>
+      <button class="btn-print" onclick="baixarCarteirinha()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+        &#128229; Baixar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== AUTENTICAÇÃO =====
+  (function verificarAuth() {
+    if (localStorage.getItem('castroalves_auth') !== 'ok') {
+      window.location.href = 'login.html';
+    }
+  })();
+
+  function fazerLogout() {
+    localStorage.removeItem('castroalves_auth');
+    window.location.href = 'login.html';
+  }
+
+  // ===== GOOGLE SHEETS =====
+  const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQuTw8zJ1deJ5MmUB7GAjtnA0xo125BSx8x2S-P4Bju4uK-uO6XaWlLO9yI-0tHuw/pub?gid=1316350613&single=true&output=csv';
+
+  // Índices das colunas (0-indexado):
+  // 0: Nome completo | 1: Nº matrícula | 2: Data nascimento | 3: Idade
+  // 4: Nome responsável | 5: Telefone responsável | 6: Endereço | 7: Linha ônibus
+  // 8: Turno | 9: Status | 10: Data criação | 11: Link WhatsApp | 12: Observações
+
+  let ALUNOS = [];
+
+  function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const result = [];
+    // Ignorar header (linha 0)
+    for (let i = 1; i < lines.length; i++) {
+      const row = lines[i].split(',');
+      if (row.length < 2) continue;
+      // Limpar aspas
+      const col = (idx) => (row[idx] || '').replace(/^"|"$/g, '').trim();
+      const nome = col(0);
+      if (!nome) continue;
+      result.push({
+        nome:      nome,
+        matricula: col(1),
+        dn:        col(2),
+        resp:      col(4),
+        tel:       col(5),
+        endereco:  col(6),
+        linha:     col(7)
+      });
+    }
+    return result;
+  }
+
+  function popularSelect() {
+    const sel = document.getElementById('sel-aluno');
+    // Manter opção padrão
+    sel.innerHTML = '<option value="">&#8212; Selecione ou preencha manualmente &#8212;</option>';
+    ALUNOS.forEach((a, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = a.nome + (a.linha ? ' – ' + a.linha : '');
+      sel.appendChild(opt);
+    });
+  }
+
+  async function carregarPlanilha() {
+    const statusEl = document.getElementById('db-status');
+    const statusText = document.getElementById('db-status-text');
+
+    statusEl.className = 'db-status loading';
+    statusText.textContent = 'Carregando dados da planilha...';
+
+    try {
+      const resp = await fetch(SHEET_CSV_URL);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const text = await resp.text();
+      ALUNOS = parseCSV(text);
+      popularSelect();
+      statusEl.className = 'db-status loaded';
+      statusText.textContent = ALUNOS.length + ' alunos carregados ✓';
+    } catch (err) {
+      statusEl.className = 'db-status error';
+      statusText.textContent = 'Erro ao carregar planilha — preencha manualmente';
+      console.warn('Planilha indisponível:', err);
+    }
+  }
+
+  // Selecionar aluno da lista
+  document.getElementById('sel-aluno').addEventListener('change', function () {
+    const idx = this.value;
+    if (idx === '') return;
+    const a = ALUNOS[parseInt(idx)];
+    if (!a) return;
+    document.getElementById('inp-nome').value      = a.nome;
+    document.getElementById('inp-matricula').value = a.matricula;
+    document.getElementById('inp-dn').value        = a.dn;
+    document.getElementById('inp-endereco').value  = a.endereco;
+    document.getElementById('inp-linha').value     = a.linha;
+    document.getElementById('inp-tel').value       = a.tel;
+    atualizar();
+    atualizarQR();
+  });
+
+  // ===== LÓGICA DA CARTEIRINHA =====
+  let qrInstance = null;
+
+  function atualizar() {
+    const nome     = document.getElementById('inp-nome').value.trim();
+    const mat      = document.getElementById('inp-matricula').value.trim();
+    const dn       = document.getElementById('inp-dn').value.trim();
+    const end      = document.getElementById('inp-endereco').value.trim();
+    const linha    = document.getElementById('inp-linha').value.trim();
+
+    document.getElementById('card-nome').textContent      = nome;
+    document.getElementById('card-matricula').textContent = mat;
+    document.getElementById('card-dn').textContent        = dn;
+    document.getElementById('card-endereco').textContent  = end;
+    document.getElementById('card-linha').textContent     = linha;
+
+    const ok = nome && linha;
+    document.getElementById('btn-baixar').disabled = !ok;
+    const st = document.getElementById('download-status');
+    if (ok) {
+      st.textContent = '✓ Carteirinha pronta para download.';
+      st.className = 'download-status ready';
+    } else {
+      st.textContent = 'Preencha o nome e a linha para habilitar o download.';
+      st.className = 'download-status';
+    }
+  }
+
+  function atualizarQR() {
+    const tel = document.getElementById('inp-tel').value.trim();
+    const container = document.getElementById('qr-code-card');
+    container.innerHTML = '';
+    if (tel) {
+      try {
+        qrInstance = new QRCode(container, {
+          text: 'https://wa.me/55' + tel.replace(/\D/g,''),
+          width: 80, height: 80,
+          colorDark: '#C84B1F', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch(e) {}
+    }
+  }
+
+  function carregarFoto(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = document.getElementById('photo-preview');
+      img.src = e.target.result;
+      img.style.display = 'block';
+      const wrap = document.getElementById('photo-preview-wrap');
+      wrap.style.background = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+
+  function baixarCarteirinha() {
+    const nome  = document.getElementById('inp-nome').value.trim();
+    const linha = document.getElementById('inp-linha').value.trim();
+    if (!nome || !linha) return;
+    window.print();
+  }
+
+  // ===== INICIALIZAÇÃO =====
+  carregarPlanilha();
+  atualizar();
+</script>
+</body>
+</html>
