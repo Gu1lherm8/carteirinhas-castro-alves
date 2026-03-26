@@ -431,13 +431,13 @@
   // ===== AUTENTICAÇÃO =====
   (function verificarAuth() {
     if (localStorage.getItem('castroalves_auth') !== 'ok') {
-      window.location.href = 'login.html';
+      window.location.href = 'index.html';
     }
   })();
 
   function fazerLogout() {
     localStorage.removeItem('castroalves_auth');
-    window.location.href = 'login.html';
+    window.location.href = 'index.html';
   }
 
   // ===== GOOGLE SHEETS =====
