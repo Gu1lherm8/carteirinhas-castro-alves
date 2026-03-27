@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Carteirinhas – Escola Municipal Castro Alves</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #1a0e08;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem; overflow: hidden; position: relative;
+    }
+    body::before, body::after {
+      content: ''; position: fixed; border-radius: 50%;
+      filter: blur(80px); opacity: 0.18; pointer-events: none;
+    }
+    body::before { width: 500px; height: 500px; background: radial-gradient(circle, #e8763a, #5C2308); top: -150px; right: -150px; }
+    body::after  { width: 400px; height: 400px; background: radial-gradient(circle, #f5c87a, #e8763a); bottom: -120px; left: -100px; }
+    .login-card {
+      background: rgba(80, 35, 10, 0.45);
+      border: 1px solid rgba(180, 100, 40, 0.35);
+      border-radius: 20px; padding: 2.5rem 2.2rem;
+      width: 100%; max-width: 400px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+      position: relative; z-index: 1;
+      animation: fadeUp 0.5s ease both;
+    }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+    .logo-wrap { display: flex; align-items: center; gap: 14px; margin-bottom: 2rem; }
+    .logo-img { width: 62px; height: 62px; border-radius: 50%; border: 3px solid #F5C030; object-fit: cover; background: #fff; flex-shrink: 0; box-shadow: 0 4px 16px rgba(245,192,48,0.3); }
+    .logo-text .school-line1 { font-size: 0.78rem; font-weight: 400; color: rgba(255,255,255,0.7); }
+    .logo-text .school-line2 { font-size: 1.05rem; font-weight: 900; color: #fff; line-height: 1.1; }
+    .logo-text .school-line3 { font-size: 0.72rem; font-weight: 400; color: #c89060; margin-top: 2px; }
+    h1 { font-size: 1.5rem; font-weight: 900; background: linear-gradient(135deg, #f5c87a, #e8763a); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.3rem; }
+    .subtitle { font-size: 0.85rem; color: #a07050; margin-bottom: 2rem; }
+    .form-group { margin-bottom: 1.1rem; }
+    label { display: block; font-size: 0.8rem; font-weight: 600; color: #c89060; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .input-wrap { position: relative; }
+    .input-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5; pointer-events: none; }
+    input { width: 100%; background: rgba(20,10,5,0.7); border: 1px solid rgba(180,100,40,0.4); border-radius: 10px; color: #fff; font-family: inherit; font-size: 0.95rem; padding: 0.72rem 0.9rem 0.72rem 2.6rem; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
+    input:focus { border-color: #e8763a; box-shadow: 0 0 0 3px rgba(232,118,58,0.22); }
+    input::placeholder { color: rgba(255,255,255,0.3); }
+    .btn-login { width: 100%; padding: 0.9rem; background: linear-gradient(135deg, #c84b1f, #e8763a); border: none; border-radius: 12px; color: #fff; font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1.4rem; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 18px rgba(200,75,31,0.45); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(200,75,31,0.6); }
+    .btn-login.loading { opacity: 0.7; cursor: not-allowed; }
+    .error-msg { display: none; background: rgba(200,20,20,0.18); border: 1px solid rgba(220,60,60,0.4); border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.85rem; color: #ff8080; margin-top: 1rem; animation: shake 0.35s ease; }
+    .error-msg.show { display: block; }
+    @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 75%{transform:translateX(6px);} }
+    .footer-note { text-align: center; margin-top: 1.8rem; font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+  </style>
+</head>
+<body>
+<div class="login-card">
+  <div class="logo-wrap">
+    <img src="logo_escola.png" alt="Logo Castro Alves" class="logo-img">
+    <div class="logo-text">
+      <div class="school-line1">Escola Municipal</div>
+      <div class="school-line2">Castro Alves</div>
+      <div class="school-line3">Transporte Escolar</div>
+    </div>
+  </div>
+  <h1>Acesso Restrito</h1>
+  <p class="subtitle">Faça login para gerar carteirinhas</p>
+  <div class="form-group">
+    <label for="usuario">Usuário</label>
+    <div class="input-wrap">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c89060" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>
+      <input type="text" id="usuario" placeholder="Digite seu usuário" autocomplete="username">
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="senha">Senha</label>
+    <div class="input-wrap">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c89060" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <input type="password" id="senha" placeholder="Digite sua senha" autocomplete="current-password">
+    </div>
+  </div>
+  <button class="btn-login" id="btn-login" onclick="fazerLogin()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+    Entrar
+  </button>
+  <div class="error-msg" id="erro">⚠️ Usuário ou senha incorretos. Tente novamente.</div>
+  <p class="footer-note">Sistema de Carteirinhas v2.0 · 2026</p>
+</div>
+<script>
+  if (localStorage.getItem('castroalves_auth') === 'ok') { window.location.href = 'index.html'; }
+  const CREDS = { usuario: 'admin', senha: 'castro2026' };
+  function fazerLogin() {
+    const usuario = document.getElementById('usuario').value.trim();
+    const senha   = document.getElementById('senha').value;
+    const erro    = document.getElementById('erro');
+    const btn     = document.getElementById('btn-login');
+    erro.classList.remove('show');
+    if (usuario === CREDS.usuario && senha === CREDS.senha) {
+      btn.classList.add('loading');
+      btn.innerHTML = '⏳ Entrando...';
+      localStorage.setItem('castroalves_auth', 'ok');
+      setTimeout(() => { window.location.href = 'index.html'; }, 600);
+    } else {
+      erro.classList.add('show');
+      document.getElementById('senha').value = '';
+      document.getElementById('senha').focus();
+    }
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); });
+</script>
+</body>
+</html>
